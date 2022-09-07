@@ -1,0 +1,149 @@
+name: Matrix CI/CD
+on: [push]
+jobs:
+  production-deploy:
+    if: ${{ startsWith(github.ref, 'refs/tags/v')  && !contains(github.ref, 'student') && !contains(github.ref, 'educator') }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: [educator, student]
+    steps:
+    - name: Set env params
+      shell: bash
+      run: |
+        echo "BRANCH_NAME=prod" >> $GITHUB_ENV
+    - name: Debug Branch Name
+      run: echo ${{ env.BRANCH_NAME }}
+    - uses: actions/checkout@v3
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version-file: '.nvmrc'
+    - name: Install necessary packages
+      run: |
+        npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
+        yarn install
+        echo $()
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    - name: Execute depenv to detect working env.
+      shell: bash
+      run: |
+        chmod +x "${GITHUB_WORKSPACE}/scripts/gasetenv.sh"
+        "${GITHUB_WORKSPACE}/scripts/gasetenv.sh"
+    - name: Debug vars
+      run: |
+        echo '-------------------'
+        echo ${{ env.BLD_ENVIRONMENT }}
+        echo yarn--cwd=packages/a-z-${{ matrix.version }} build:${{ env.BLD_ENVIRONMENT }}
+        echo ${{ env[format('{0}_NODE_ENV', matrix.version)] }}
+        echo ${{ env[format('{0}_BUILD_ENV', matrix.version)] }}
+  production-deploy-student:
+    if: startsWith(github.ref, 'refs/tags/v') && contains(github.ref, 'student')
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set env params
+      shell: bash
+      run: |
+        echo "BRANCH_NAME=prod" >> $GITHUB_ENV
+    - uses: actions/checkout@v3
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version-file: '.nvmrc'
+    - name: Install necessary packages
+      run: |
+        npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKENp
+        yarn install
+        echo $()
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    - name: Execute depenv to detect working env.
+      shell: bash
+      run: |
+        chmod +x "${GITHUB_WORKSPACE}/scripts/gasetenv.sh"
+        "${GITHUB_WORKSPACE}/scripts/gasetenv.sh"
+    - name: Debug Env vars.
+      run: echo $()
+    - name: Debug vars
+      run: |
+        echo ${{ env.STUDENT_BUILD_ENV }}
+        echo ${{ env.STUDENT_NODE_ENV }}  
+      
+  production-deploy-educator:
+    if: startsWith(github.ref, 'refs/tags/v') && contains(github.ref, 'educator')
+    runs-on: ubuntu-latest
+    steps:
+    - name: Set env params
+      shell: bash
+      run: |
+        echo "BRANCH_NAME=prod" >> $GITHUB_ENV
+    - uses: actions/checkout@v3
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version-file: '.nvmrc'
+    - name: Install necessary packages
+      run: |
+        npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
+        yarn install
+        echo $()
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    - name: Execute depenv to detect working env.
+      shell: bash
+      run: |
+        chmod +x "${GITHUB_WORKSPACE}/scripts/gasetenv.sh"
+        "${GITHUB_WORKSPACE}/scripts/gasetenv.sh"
+    - name: Debug Env vars.
+      run: echo $()
+    - name: Debug vars
+      run: |
+        echo ${{ env.EDUCATOR_BUILD_ENV }}
+        echo ${{ env.EDUCATOR_NODE_ENV }}
+
+### FRONTEND GITHUB ACTION
+
+### This Part is for lower env. like Dev-Next, QA01, Stage ###        
+  lower-env-deploy:
+    if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: [educator, student]
+    steps:
+    - name: Get branch name (merge)
+      if: github.event_name != 'pull_request'
+      shell: bash
+      run: echo "BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/} | tr / -)" >> $GITHUB_ENV
+    - name: Get branch name (pull request)
+      if: github.event_name == 'pull_request'
+      shell: bash
+      run: echo "BRANCH_NAME=$(echo ${GITHUB_HEAD_REF} | tr / -)" >> $GITHUB_ENV
+    - name: Debug Branch Name
+      run: echo ${{ env.BRANCH_NAME }}
+    - uses: actions/checkout@v3
+    - name: Use Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version-file: '.nvmrc'
+    - name: Install necessary packages
+      run: |
+        npm config set //registry.npmjs.org/:_authToken=$NODE_AUTH_TOKEN
+        yarn install
+        echo $()
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+    - name: Execute depenv to detect working env.
+      shell: bash
+      run: |
+        chmod +x "${GITHUB_WORKSPACE}/scripts/gasetenv.sh"
+        "${GITHUB_WORKSPACE}/scripts/gasetenv.sh"
+    - name: Debug vars
+      run: |
+        echo '-------------------'
+        echo ${{ env.BLD_ENVIRONMENT }}
+        echo yarn--cwd=packages/a-z-${{ matrix.version }} build:${{ env.BLD_ENVIRONMENT }}
+        echo ${{ env[format('{0}_NODE_ENV', matrix.version)] }}
+        echo ${{ env[format('{0}_BUILD_ENV', matrix.version)] }}
+
